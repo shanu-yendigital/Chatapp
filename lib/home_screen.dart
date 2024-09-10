@@ -71,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ]
       ),
-      // If the users list is empty, show a loading spinner (CircularProgressIndicator)
+      // If the users list is empty, show a loading spinner
       // Otherwise, display the list of users
       body: users.isEmpty
           ? const Center(child: CircularProgressIndicator()) // Show loading spinner
@@ -96,16 +96,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-      // Floating action button to navigate to the sign-up screen
+      
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Navigate to the sign-up screen when the button is pressed
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const SignUpScreen()), // Open sign-up screen
+            MaterialPageRoute(builder: (context) => const SignUpScreen()), 
           );
         },
-        child: const Icon(Icons.add), // "+" icon on the floating button
+        child: const Icon(Icons.add), 
       ),
     );
   }

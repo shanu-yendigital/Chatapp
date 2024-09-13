@@ -4,10 +4,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:frontend/services/auth_service.dart'; 
 
 class ChatScreen extends StatefulWidget {
-  final String userId;
+  final String currentUserId;
   final String chatUserId;
-
-  const ChatScreen({required this.userId, required this.chatUserId, Key? key}) : super(key: key);
+  final String targetUserId;
+  const ChatScreen({required this.currentUserId, required this.targetUserId, required this.chatUserId, Key? key}) : super(key: key);
 
   @override
   ChatScreenState createState() => ChatScreenState();
@@ -31,25 +31,28 @@ class ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _channel.sink.close(); //Close WebSocket connection when the screen is disposed
+     print('WebSocket connection closed');
     super.dispose();
   }
 
   void _connectWebSocket() {
     _channel = WebSocketChannel.connect(
-      Uri.parse('ws://localhost:5008/ws?userId=${widget.userId}'),
+    //  Uri.parse('ws://localhost:5008/ws?userId=${widget.userId}'),
+    Uri.parse('ws://localhost:5008/ws?userId=${widget.currentUserId}&chatUserId=${widget.chatUserId}'),
     );
 
- // Convert the WebSocket stream to a broadcast stream
+
     _broadcastStream = _channel.stream.asBroadcastStream();
 
   // Listen for incoming messages
     _broadcastStream.listen(
       (message) {
         if (mounted) {
+
           setState(() {
             _isConnected = true;
             messages.add({
-              'userId': widget.chatUserId,  // Add received message with sender's ID
+              'userId': widget.chatUserId,  
               'message': message.toString(),
                //'timestamp': DateTime.now()
             });
@@ -79,11 +82,13 @@ class ChatScreenState extends State<ChatScreen> {
     if (_controller.text.isNotEmpty) {
       try {
        //final String messageText = _controller.text;
-        _channel.sink.add(_controller.text); // Send message
+       final String formattedMessage = "${widget.targetUserId}:${_controller.text}";
+        _channel.sink.add(formattedMessage); 
         //final DateTime now = DateTime.now();
         setState(() {
           messages.add({
-            'userId': widget.userId, // Add sent message with current user's ID
+            'userId': widget.currentUserId, 
+            
             'message': _controller.text,
             //'message': messageText,
             //'timestamp': now,
@@ -99,7 +104,7 @@ class ChatScreenState extends State<ChatScreen> {
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      // Handle image picking and send image data if needed
+
       print('Picked image: ${image.path}');
     }
   }
@@ -147,7 +152,9 @@ class ChatScreenState extends State<ChatScreen> {
                           //   formattedTime,
                           //   style: TextStyle(color: Colors.grey, fontSize: 12),
                           // ),
-                      if (msg['userId'] == widget.userId)
+                       Expanded(child: Text(msg['message']!)),
+
+                      if (msg['userId'] == widget.currentUserId)
                         Icon(Icons.check, color: Colors.green),
                     ],
                   ),

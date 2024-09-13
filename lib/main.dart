@@ -27,13 +27,15 @@ class MyApp extends StatelessWidget {
               builder: (context) => HomeScreen(currentUserId: currentUserId),
             );
           case '/chat':
-            final Map<String, String> args = settings.arguments as Map<String, String>;
-            final String currentUserId = args['currentUserId']!;
-            final String chatUserId = args['chatUserId']!;
+            final Map<String, dynamic> args = settings.arguments as Map<String, dynamic>;
+            final String currentUserId = args['currentUserId'].toString();
+            final String chatUserId = args['chatUserId'].toString();
+             final String targetUserId = args['targetUserId'].toString();
             return MaterialPageRoute(
               builder: (context) => ChatScreen(
-                userId: currentUserId,
-                chatUserId: chatUserId,
+                targetUserId: targetUserId,
+                 currentUserId: currentUserId,
+                 chatUserId: chatUserId,
               ),
             );
           case '/signup':

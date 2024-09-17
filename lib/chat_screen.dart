@@ -46,36 +46,45 @@ class ChatScreenState extends State<ChatScreen> {
 
   // Listen for incoming messages
     _broadcastStream.listen(
-      (message) {
-        if (mounted) {
+  (message) {
+     print('Received WebSocket message: $message');
+    if (mounted) {
+      final String rawMessage = message.toString();
+      final List<String> messageParts = rawMessage.split(':');
+      
+      if (messageParts.length == 2) {
+        final String senderId = messageParts[0];  // Sender's ID (user who sent the message)
+        final String messageText = messageParts[1];  // The actual message content
 
-          setState(() {
-            _isConnected = true;
-            messages.add({
-              'userId': widget.chatUserId,  
-              'message': message.toString(),
-               //'timestamp': DateTime.now()
-            });
+        setState(() {
+          messages.add({
+            'userId': senderId,
+            'message': messageText,
           });
-        }
-      },
-      onDone: () {
-        if (mounted) {
-          setState(() {
-            _isConnected = false;
-          });
-        }
-        print('WebSocket connection closed');
-      },
-      onError: (error) {
-        if (mounted) {
-          setState(() {
-            _isConnected = false;
-          });
-        }
-        print('WebSocket error: $error');
-      },
-    );
+        });
+      } else {
+        print('Received malformed message: $message');
+      }
+    }
+  },
+  onDone: () {
+    if (mounted) {
+      setState(() {
+        _isConnected = false;
+      });
+    }
+    print('WebSocket connection closed');
+  },
+  onError: (error) {
+    if (mounted) {
+      setState(() {
+        _isConnected = false;
+      });
+    }
+    print('WebSocket error: $error');
+  },
+);
+
   }
  // Method to send a message
   void _sendMessage() {
@@ -83,6 +92,7 @@ class ChatScreenState extends State<ChatScreen> {
       try {
        //final String messageText = _controller.text;
        final String formattedMessage = "${widget.targetUserId}:${_controller.text}";
+            print('Sending message from frontend: $formattedMessage'); 
         _channel.sink.add(formattedMessage); 
         //final DateTime now = DateTime.now();
         setState(() {
@@ -114,49 +124,43 @@ class ChatScreenState extends State<ChatScreen> {
     await AuthService.logout(context);
 
   }
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.chatUserId} Chat'),
-         actions: [
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: Text('${widget.chatUserId} Chat'),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.logout),
+          onPressed: _logout,
+        ),
+      ],
+    ),
+    body: Column(
+      children: <Widget>[
+        Expanded(
+          child: ListView.builder(
+            itemCount: messages.length,
+            itemBuilder: (context, index) {
+              final msg = messages[index];
+              final String senderId = msg['userId']; // Extract senderId
+              final String messageText = msg['message']; // Extract messageText
+               final isSender = msg['userId'] == widget.currentUserId;
+              bool isCurrentUser = senderId == widget.currentUserId;
 
-          IconButton(
-
-            icon: Icon(Icons.logout),
-
-            onPressed: _logout,
-
-          ),
-
-        ],
-      ),
-      body: Column(
-        children: <Widget>[
-          Expanded(
-            child: ListView.builder(
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final msg = messages[index];
-                //final DateTime timestamp = msg['timestamp'];
-                //final String formattedTime = "${timestamp.hour}:${timestamp.minute}";
-                return ListTile(
-                  title: Row(
-                    children: [
-                      Text(msg['userId']!),
-                      SizedBox(width: 10),
-                      
-                      Text(msg['message']!),
-                      SizedBox(height: 5),
-                          // Text(
-                          //   formattedTime,
-                          //   style: TextStyle(color: Colors.grey, fontSize: 12),
-                          // ),
-                       Expanded(child: Text(msg['message']!)),
-
-                      if (msg['userId'] == widget.currentUserId)
-                        Icon(Icons.check, color: Colors.green),
-                    ],
+                             return Align(
+                  alignment: isSender ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    margin: EdgeInsets.all(8.0),
+                    padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+                    decoration: BoxDecoration(
+                      color: isSender ? Colors.green[800] : Colors.grey[700], 
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    child: Text(
+                      msg['message']!,
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 );
               },

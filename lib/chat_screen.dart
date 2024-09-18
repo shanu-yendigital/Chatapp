@@ -2,18 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:frontend/services/auth_service.dart'; 
+import 'package:frontend/services/chatservice.dart';  
+import 'package:frontend/models/chatmessagemodel.dart';    
 
 class ChatScreen extends StatefulWidget {
   final String currentUserId;
   final String chatUserId;
   final String targetUserId;
-  const ChatScreen({required this.currentUserId, required this.targetUserId, required this.chatUserId, Key? key}) : super(key: key);
+
+  const ChatScreen({
+   required this.currentUserId,
+   required this.targetUserId, 
+   required this.chatUserId, 
+   Key? key}) : super(key: key);
 
   @override
   ChatScreenState createState() => ChatScreenState();
 }
 
 class ChatScreenState extends State<ChatScreen> {
+  List<ChatMessage> _messages = [];
   final TextEditingController _controller = TextEditingController();
   late final WebSocketChannel _channel;
   late final Stream _broadcastStream;
@@ -22,15 +30,32 @@ class ChatScreenState extends State<ChatScreen> {
   final List<Map<String, dynamic>> messages = [];
   bool _isConnected = false;
 
+
+
+  final ChatService _chatService = ChatService();   //ChatService instance
+
   @override
   void initState() {
     super.initState();
-    _connectWebSocket(); // Establish WebSocket connection on screen initialization
+    _connectWebSocket(); 
+    _loadMessages(); 
   }
 
+  // Fetch messages from the server
+  Future<void> _loadMessages() async {
+    try {
+   //   List<ChatMessage> messages = await _chatService.fetchMessages(widget.senderId, widget.receiverId);
+   List<ChatMessage> messages = await _chatService.fetchMessages(widget.currentUserId, widget.targetUserId);  
+      setState(() {
+        _messages = messages;
+      });
+    } catch (e) {
+      print("Error fetching messages: $e");
+    }
+  }
   @override
   void dispose() {
-    _channel.sink.close(); //Close WebSocket connection when the screen is disposed
+    _channel.sink.close(); 
      print('WebSocket connection closed');
     super.dispose();
   }
@@ -57,10 +82,12 @@ class ChatScreenState extends State<ChatScreen> {
         final String messageText = messageParts[1];  // The actual message content
 
         setState(() {
+           print('Inside setState');
           messages.add({
             'userId': senderId,
             'message': messageText,
           });
+           print('Messages List: $messages');
         });
       } else {
         print('Received malformed message: $message');
@@ -143,9 +170,10 @@ Widget build(BuildContext context) {
             itemCount: messages.length,
             itemBuilder: (context, index) {
               final msg = messages[index];
+                print('Rendering message at index $index: $msg');
               final String senderId = msg['userId']; // Extract senderId
               final String messageText = msg['message']; // Extract messageText
-               final isSender = msg['userId'] == widget.currentUserId;
+               final bool isSender = msg['userId'] == widget.currentUserId;
               bool isCurrentUser = senderId == widget.currentUserId;
 
                              return Align(

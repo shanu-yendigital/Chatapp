@@ -5,16 +5,18 @@ import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/chatservice.dart';  
 import 'package:frontend/models/chatmessagemodel.dart';    
 
+
+
 class ChatScreen extends StatefulWidget {
   final String currentUserId;
   final String chatUserId;
   final String targetUserId;
 
   const ChatScreen({
-   required this.currentUserId,
-   required this.targetUserId, 
-   required this.chatUserId, 
-   Key? key}) : super(key: key);
+    required this.currentUserId,
+    required this.targetUserId,
+    required this.chatUserId,
+    Key? key}) : super(key: key);
 
   @override
   ChatScreenState createState() => ChatScreenState();
@@ -26,13 +28,8 @@ class ChatScreenState extends State<ChatScreen> {
   late final WebSocketChannel _channel;
   late final Stream _broadcastStream;
   final ImagePicker _picker = ImagePicker();
-  //final List<Map<String, String>> messages = [];
-  final List<Map<String, dynamic>> messages = [];
-  bool _isConnected = false;
-
-
-
   final ChatService _chatService = ChatService();   //ChatService instance
+  bool _isConnected = false;
 
   @override
   void initState() {
@@ -44,93 +41,103 @@ class ChatScreenState extends State<ChatScreen> {
   // Fetch messages from the server
   Future<void> _loadMessages() async {
     try {
-   //   List<ChatMessage> messages = await _chatService.fetchMessages(widget.senderId, widget.receiverId);
-   List<ChatMessage> messages = await _chatService.fetchMessages(widget.currentUserId, widget.targetUserId);  
+      List<ChatMessage> messages = await _chatService.fetchMessages(widget.currentUserId, widget.targetUserId);
       setState(() {
+        print("Set state is being called");
         _messages = messages;
+        print("Fetched messages: $messages");
       });
     } catch (e) {
       print("Error fetching messages: $e");
     }
   }
+
   @override
   void dispose() {
     _channel.sink.close(); 
-     print('WebSocket connection closed');
+    print('WebSocket connection closed');
     super.dispose();
   }
 
+  // Connect WebSocket
   void _connectWebSocket() {
     _channel = WebSocketChannel.connect(
-    //  Uri.parse('ws://localhost:5008/ws?userId=${widget.userId}'),
-    Uri.parse('ws://localhost:5008/ws?userId=${widget.currentUserId}&chatUserId=${widget.chatUserId}'),
+      Uri.parse('ws://localhost:5008/ws?userId=${widget.currentUserId}&chatUserId=${widget.chatUserId}'),
     );
-
 
     _broadcastStream = _channel.stream.asBroadcastStream();
 
-  // Listen for incoming messages
+    // Listen for incoming WebSocket messages
     _broadcastStream.listen(
-  (message) {
-     print('Received WebSocket message: $message');
-    if (mounted) {
-      final String rawMessage = message.toString();
-      final List<String> messageParts = rawMessage.split(':');
-      
-      if (messageParts.length == 2) {
-        final String senderId = messageParts[0];  // Sender's ID (user who sent the message)
-        final String messageText = messageParts[1];  // The actual message content
+      (message) {
+        print('Received WebSocket message: $message');
+        if (mounted) {
+          final String rawMessage = message.toString();
+          final List<String> messageParts = rawMessage.split(':');
+          
+          if (messageParts.length == 2) {
+            final String senderId = messageParts[0];  // Sender's ID
+            final String messageText = messageParts[1];  // The actual message content
 
-        setState(() {
-           print('Inside setState');
-          messages.add({
-            'userId': senderId,
-            'message': messageText,
+            setState(() {
+              print('Inside setState for WebSocket message');
+              _messages.add(ChatMessage(
+                senderId: senderId,
+                receiverId: widget.currentUserId,  // or widget.chatUserId depending on the context
+                message: messageText,
+                timestamp: DateTime.now(),
+              ));
+            });
+          } else {
+            print('Received malformed message: $message');
+          }
+        }
+      },
+      onDone: () {
+        if (mounted) {
+          setState(() {
+            _isConnected = false;
           });
-           print('Messages List: $messages');
-        });
-      } else {
-        print('Received malformed message: $message');
-      }
-    }
-  },
-  onDone: () {
-    if (mounted) {
-      setState(() {
-        _isConnected = false;
-      });
-    }
-    print('WebSocket connection closed');
-  },
-  onError: (error) {
-    if (mounted) {
-      setState(() {
-        _isConnected = false;
-      });
-    }
-    print('WebSocket error: $error');
-  },
-);
-
+        }
+        print('WebSocket connection closed');
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() {
+            _isConnected = false;
+          });
+        }
+        print('WebSocket error: $error');
+      },
+    );
   }
- // Method to send a message
+
+  // Method to send a message
   void _sendMessage() {
     if (_controller.text.isNotEmpty) {
       try {
-       //final String messageText = _controller.text;
-       final String formattedMessage = "${widget.targetUserId}:${_controller.text}";
-            print('Sending message from frontend: $formattedMessage'); 
-        _channel.sink.add(formattedMessage); 
-        //final DateTime now = DateTime.now();
+        final String formattedMessage = "${widget.targetUserId}:${_controller.text}";
+        print('Sending message from frontend: $formattedMessage'); 
+        
+        // Send message through WebSocket
+        _channel.sink.add(formattedMessage);
+
+        // Create ChatMessage instance
+        final ChatMessage newMessage = ChatMessage(
+          senderId: widget.currentUserId,
+          receiverId: widget.targetUserId,
+          message: _controller.text,
+          timestamp: DateTime.now(),
+        );
+
+        // Send message to the backend to save it in the database
+        _chatService.saveMessage(newMessage);
+
+        // Update UI
         setState(() {
-          messages.add({
-            'userId': widget.currentUserId, 
-            
-            'message': _controller.text,
-            //'message': messageText,
-            //'timestamp': now,
-          });
+          _messages.add(newMessage);
         });
+
         _controller.clear(); // Clear the input field after sending
       } catch (e) {
         print('Error sending message: $e');
@@ -141,42 +148,38 @@ class ChatScreenState extends State<ChatScreen> {
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-
       print('Picked image: ${image.path}');
     }
   }
 
- void _logout() async {
-
+  void _logout() async {
     await AuthService.logout(context);
-
   }
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      title: Text('${widget.chatUserId} Chat'),
-      actions: [
-        IconButton(
-          icon: Icon(Icons.logout),
-          onPressed: _logout,
-        ),
-      ],
-    ),
-    body: Column(
-      children: <Widget>[
-        Expanded(
-          child: ListView.builder(
-            itemCount: messages.length,
-            itemBuilder: (context, index) {
-              final msg = messages[index];
-                print('Rendering message at index $index: $msg');
-              final String senderId = msg['userId']; // Extract senderId
-              final String messageText = msg['message']; // Extract messageText
-               final bool isSender = msg['userId'] == widget.currentUserId;
-              bool isCurrentUser = senderId == widget.currentUserId;
 
-                             return Align(
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${widget.chatUserId} Chat'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: _logout,
+          ),
+        ],
+      ),
+      body: Column(
+        children: <Widget>[
+          Expanded(
+            child: ListView.builder(
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final ChatMessage msg = _messages[index];
+      
+                print('Rendering message at index $index: $msg');
+                final bool isSender = msg.senderId == widget.currentUserId;
+
+                return Align(
                   alignment: isSender ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
                     margin: EdgeInsets.all(8.0),
@@ -186,7 +189,7 @@ Widget build(BuildContext context) {
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child: Text(
-                      msg['message']!,
+                      msg.message,
                       style: TextStyle(color: Colors.white),
                     ),
                   ),

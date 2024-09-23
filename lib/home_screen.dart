@@ -6,53 +6,81 @@ import 'chat_screen.dart';
 import 'dart:convert';
 import 'package:frontend/ui/messages.dart'; 
 import 'package:frontend/ui/contacts.dart';
+import 'package:frontend/services/auth_service.dart';
+import 'CreateGroupScreen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String currentUserId;
 
- // Constructor for HomeScreen, requires currentUserId and passes key to the parent class
   HomeScreen({required this.currentUserId, Key? key}) : super(key: key);
 
-  
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> users = [];  // List to store fetched users
+  List<dynamic> groups = []; // List to store fetched groups
 
-   @override
+  @override
   void initState() {
     super.initState();
-    _fetchUsers(); // Fetch users when the widget is initialized
-   //  _fetchMessages();
+    _fetchUsers(); 
+    _fetchGroups(); // Fetch groups when the widget is initialized
   }
 
-   // Function to fetch users from the backend
+  // Function to fetch users from the backend
   Future<void> _fetchUsers() async {
     try {
-      
+      final token = await AuthService().getAccessToken(); 
       final response = await http.get(
         Uri.parse('http://localhost:5008/api/auth/users'), // API to fetch all users
-        headers: {'Content-Type': 'application/json'}, 
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token'
+        },
       );
 
       if (response.statusCode == 200) {
-        // If the request is successful (status code 200), update the UI with the fetched users
         setState(() {
-        
-           List<dynamic> fetchedUsers = jsonDecode(response.body);
+          List<dynamic> fetchedUsers = jsonDecode(response.body);
           // Filter out the logged-in user from the fetched list
           users = fetchedUsers.where((user) => user['username'] != widget.currentUserId).toList();
         });
       } else {
-        // If the request fails, show an error message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to load users')),
         );
       }
     } catch (e) {
-      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  
+  Future<void> _fetchGroups() async {
+    try {
+      final token = await AuthService().getAccessToken(); 
+      final response = await http.get(
+        Uri.parse('http://localhost:5008/api/groups'), // API to fetch all groups
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token'
+        },
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          groups = jsonDecode(response.body);
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load groups')),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -61,53 +89,93 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Function to log out the user
   void _logout() async {
-    await AuthService.logout(context); // Call the AuthService to log out the user
-    // Navigate back to the login screen after logout
+    await AuthService.logout(context); 
     Navigator.pushReplacementNamed(context, '/login'); 
   }
 
   @override
-
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chat list'),
+        title: const Text('Chat List'),
         actions: [
-          IconButton(onPressed: _logout, 
-          icon: const Icon(Icons.logout),
+          IconButton(
+            onPressed: _logout,
+            icon: const Icon(Icons.logout),
           ),
-        ]
+        ],
       ),
-      
-      body: users.isEmpty
-          ? const Center(child: CircularProgressIndicator()) // Show loading spinner
-          : ListView.builder(
-              itemCount: users.length, // Number of users to display
-              itemBuilder: (context, index) {
-                final user = users[index]; // Access individual user from the list
-                return ListTile(
-                  title: Text(user['username']), // Display the username of the user
+      body: Row(
+        children: <Widget>[
+          // Contacts and Groups list on the left
+          Expanded(
+            child: ListView(
+              children: <Widget>[
+                // Contacts List
+                ...users.map((user) => ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.green[800], // Dark green color
+                    child: Text(
+                      user['username'][0].toUpperCase(), // Display the first letter of username
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  title: Text(user['username']),
                   onTap: () {
-                   
                     Navigator.pushNamed(
                       context,
                       '/chat',
                       arguments: {
                         'currentUserId': widget.currentUserId, 
-                     
-                       'targetUserId': user['username'],
-                        'chatUserId': user['username'], 
-                       // 'chatUserName': user['username'], 
+                        'targetUserId': user['username'],
+                        'chatUserId': user['username'],
                       },
                     );
                   },
-
-
-                );
-              },
+                )).toList(),
+                
+                // Groups List
+                ...groups.map((group) => Container(
+                  margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
+                  padding: EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    color: Colors.lightGreen, // Light green color
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: ListTile(
+                    title: Text(
+                      group['Name'],
+                      style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                    ),
+                    onTap: () {
+                      // Handle group tap if needed
+                    },
+                  ),
+                )).toList(),
+              ],
             ),
-      
-    
+          ),
+          // Create Group Chat button on the right
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton(
+                onPressed: () {
+                   print("Navigating to CreateGroupScreen with currentUserId: ${widget.currentUserId}");
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CreateGroupScreen(currentUserId: widget.currentUserId),
+                    ),
+                  );
+                },
+                child: const Text('Create Group Chat'),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
-} 
+}

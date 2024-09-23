@@ -51,12 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('accessToken', token);
 
-      // Navigate to the Home Screen
-      // Navigator.of(context).pushReplacement(
-      //   MaterialPageRoute(
-      //     builder: (context) => HomeScreen(currentUserId: username),
-      //   ),
-      // );
+     
       Navigator.pushNamed(
 
         context,
@@ -67,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
     
     } else {
-      // Show error if login failed
+ 
       _showErrorDialog("Invalid username or password.");
     }
   }

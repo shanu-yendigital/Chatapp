@@ -92,17 +92,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Confirm Password'),
                 obscureText: true,  //hides the text in password field
-                validator: (value){
-                  if(value == null || value.isEmpty) {
-                    return 'Please confirm your password';
+                // validator: (value){
+                //   if(value == null || value.isEmpty) {
+                //     return 'Please confirm your password';
                     
-                  } else if (value != _password) {
-                     print('Password: $_password');
-                     print('Confirm Password: $value');
-                    return 'Passwords do not match';
-                  }
-                  return null;
-                   },
+                //   } else if (value != _password) {
+                //      print('Password: $_password');
+                //      print('Confirm Password: $value');
+                //     return 'Passwords do not match';
+                //   }
+                //   return null;
+                //    },
                   onSaved: (value) {
                     _confirmPassword = value!;
                   },

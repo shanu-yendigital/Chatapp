@@ -23,6 +23,11 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     final adminId = widget.currentUserId; 
     final token = await AuthService().getAccessToken(); // Get access token
 
+    if (groupName.isEmpty) {
+    print('Group name cannot be empty');
+    return;
+  }
+
     final response = await http.post(
       Uri.parse('http://localhost:5008/api/group/creategroup'),
       headers: {
@@ -30,7 +35,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         'Authorization': 'Bearer $token',
       },
       body: jsonEncode({
-        'iName': groupName,
+        'Name': groupName,
         
        'AdminId': adminId,
       

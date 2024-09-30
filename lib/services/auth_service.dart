@@ -14,10 +14,10 @@ class AuthService {
 //Retrieve access token from shared preferences
 Future<String?> getAccessToken() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  return prefs.getString('accesstoken');
+  return prefs.getString('accessToken');
 }
 
-//Retrieve refresh token from SharedPreferences
+
 Future<String?> getRefreshToken() async{
   SharedPreferences prefs = await SharedPreferences.getInstance();
   return prefs.getString('refreshToken');

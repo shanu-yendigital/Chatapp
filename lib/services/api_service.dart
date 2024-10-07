@@ -8,7 +8,7 @@ class ApiService {
   Future<http.Response> makeAuthenticatedRequest(String url,BuildContext context) async {
     String? accessToken = await _authService.getAccessToken();
 
-    // Check if access token is expired (for simplicity, assume it's expired if it's null)
+   
     if (accessToken == null) {
       await _authService.refreshAccessToken(context);
       accessToken = await _authService.getAccessToken();

@@ -151,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Container(
               padding: EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.8), // Slightly transparent background for the login section
+                color: Colors.white.withOpacity(0.8),
                 borderRadius: BorderRadius.circular(12),
               ),
               width: 300,

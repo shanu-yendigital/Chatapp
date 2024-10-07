@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 class ChatService {
   final String baseUrl = 'http://localhost:5008/api/chat';  
 
-  // Fetch messages from the server
+  
   Future<List<ChatMessage>> fetchMessages(String senderId, String receiverId) async {
     final response = await http.get(Uri.parse('$baseUrl/getMessages?senderId=$senderId&receiverId=$receiverId'));
 

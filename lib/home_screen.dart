@@ -19,14 +19,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<dynamic> users = [];  // List to store fetched users
-  List<dynamic> groups = []; // List to store fetched groups
+  List<dynamic> users = []; 
+  List<dynamic> groups = []; 
 
   @override
   void initState() {
     super.initState();
     _fetchUsers(); 
-    _fetchGroups(); // Fetch groups when the widget is initialized
+  
   }
 
   // Function to fetch users from the backend
@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final token = await AuthService().getAccessToken(); 
       final response = await http.get(
-        Uri.parse('http://localhost:5008/api/auth/users'), // API to fetch all users
+        Uri.parse('http://localhost:5008/api/auth/users'), 
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token'
@@ -44,40 +44,12 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200) {
         setState(() {
           List<dynamic> fetchedUsers = jsonDecode(response.body);
-          // Filter out the logged-in user from the fetched list
+          // Filter out the logged-in user from the fetched lists
           users = fetchedUsers.where((user) => user['username'] != widget.currentUserId).toList();
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to load users')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    }
-  }
-
-  
-  Future<void> _fetchGroups() async {
-    try {
-      final token = await AuthService().getAccessToken(); 
-      final response = await http.get(
-        Uri.parse('http://localhost:5008/api/groups'), // API to fetch all groups
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          groups = jsonDecode(response.body);
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load groups')),
         );
       }
     } catch (e) {
@@ -107,16 +79,16 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Row(
         children: <Widget>[
-          // Contacts and Groups list on the left
+          
           Expanded(
             child: ListView(
               children: <Widget>[
                 // Contacts List
                 ...users.map((user) => ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Colors.green[800], // Dark green color
+                    backgroundColor: Colors.green[800], 
                     child: Text(
-                      user['username'][0].toUpperCase(), // Display the first letter of username
+                      user['username'][0].toUpperCase(), 
                       style: TextStyle(color: Colors.white),
                     ),
                   ),

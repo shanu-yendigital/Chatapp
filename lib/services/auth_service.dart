@@ -52,7 +52,6 @@ Future<void> signIn(String username, String password, BuildContext context) asyn
     }
   }
 
- // Method to refresh the access token
   Future<void> refreshAccessToken(BuildContext context) async {
     final refreshToken = await getRefreshToken();
 
@@ -67,18 +66,18 @@ Future<void> signIn(String username, String password, BuildContext context) asyn
         final responseData = jsonDecode(response.body);
         final newAccessToken = responseData['accessToken'];
 
-        // Save the new access token
+     
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('accessToken', newAccessToken);
       } else {
-        // Handle token refresh error
+       
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Session expired. Please log in again.')),
         );
         logout(context);
       }
     } else {
-      // Handle missing refresh token scenario
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Session expired. Please log in again.')),
       );
